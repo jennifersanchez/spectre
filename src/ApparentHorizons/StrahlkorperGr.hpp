@@ -296,3 +296,15 @@ std::array<double, 3> spin_vector(double spin_magnitude,
                                   const Scalar<DataVector>& spin_function,
                                   const YlmSpherepack& ylm) noexcept;
 }  // namespace StrahlkorperGr
+
+/*!
+ * \ingroup SurfacesGroup
+ * \brief Christodoulou mass of a 2D `Strahlkorper`.
+ *
+ * \details See Eq. (15.39) of
+ * James B. Hartle's Gravity: An Introduction to Einstein's General Relativity.
+ * This function computes the gravitational mass that a distant, orbiting observer would measure.  
+ * Specifically, computes
+ * \f$M^2=\M^2_{irr}+\frac{J^2}{4M^2_{irr}}\f$
+ */
+ double christodoulou_mass(double area) noexcept;
