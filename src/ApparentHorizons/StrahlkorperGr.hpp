@@ -305,6 +305,6 @@ std::array<double, 3> spin_vector(double spin_magnitude,
  * James B. Hartle's Gravity: An Introduction to Einstein's General Relativity.
  * This function computes the gravitational mass that a distant, orbiting observer would measure.  
  * Specifically, computes
- * \f$M^2=\M^2_{irr}+\frac{J^2}{4M^2_{irr}}\f$
+ * \f$M^2=\M^2_{ir}+\frac{J^2}{4M^2_{ir}}\f$
  */
  double christodoulou_mass(double area) noexcept;
