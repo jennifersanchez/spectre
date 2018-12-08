@@ -652,8 +652,8 @@ std::array<double, 3> spin_vector(const double spin_magnitude,
   return spin_vector * (spin_magnitude / magnitude(spin_vector));
 }
     
-double christodoulou_mass___???? noexcept {
-    return pow(irreducible_mass,2)+ (pow(angular momentum here,2))/(4*pow(irreducible_mass,2));
+double christodoulou_mass(const double spin_magnitude, const double irreducible_mass) noexcept {
+    return pow(irreducible_mass,2)+ (pow(spin_magnitude,2))/(4*pow(irreducible_mass,2));
 }
 
 }  // namespace StrahlkorperGr
