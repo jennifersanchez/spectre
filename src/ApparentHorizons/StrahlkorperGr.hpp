@@ -307,4 +307,4 @@ std::array<double, 3> spin_vector(double spin_magnitude,
  * Specifically, computes
  * \f$M^2=\M^2_{ir}+\frac{J^2}{4M^2_{ir}}\f$
  */
- double christodoulou_mass(double spin_magnitude) noexcept;
+ double christodoulou_mass(double spin_magnitude, double irreducible_mass) noexcept;
