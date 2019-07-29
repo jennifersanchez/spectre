@@ -26,7 +26,8 @@
 #include "Evolution/Systems/GeneralizedHarmonic/System.hpp"
 #include "Evolution/Systems/GeneralizedHarmonic/Tags.hpp"
 #include "NumericalAlgorithms/LinearOperators/Divergence.tpp"
-#include "NumericalAlgorithms/LinearOperators/PartialDerivatives.hpp"
+#include "NumericalAlgorithms/LinearOperators/PartialDerivatives.tpp"
+#include "Parallel/AddOptionsToDataBox.hpp"
 #include "Parallel/ConstGlobalCache.hpp"
 #include "ParallelAlgorithms/Initialization/MergeIntoDataBox.hpp"
 #include "PointwiseFunctions/AnalyticData/Tags.hpp"
@@ -35,6 +36,7 @@
 #include "PointwiseFunctions/GeneralRelativity/ComputeGhQuantities.hpp"
 #include "PointwiseFunctions/GeneralRelativity/ComputeSpacetimeQuantities.hpp"
 #include "PointwiseFunctions/GeneralRelativity/IndexManipulation.hpp"
+#include "PointwiseFunctions/GeneralRelativity/Ricci.hpp"
 #include "PointwiseFunctions/GeneralRelativity/Tags.hpp"
 #include "Utilities/Gsl.hpp"
 #include "Utilities/MakeWithValue.hpp"
@@ -120,10 +122,28 @@ struct InitializeGHAnd3Plus1VariablesTags {
         gr::Tags::SpacetimeChristoffelSecondKindCompute<Dim, frame, DataVector>,
         gr::Tags::TraceSpacetimeChristoffelFirstKindCompute<Dim, frame,
                                                             DataVector>,
+<<<<<<< HEAD
         gr::Tags::SpatialChristoffelFirstKindCompute<Dim, frame, DataVector>,
         gr::Tags::SpatialChristoffelSecondKindCompute<Dim, frame, DataVector>,
         gr::Tags::TraceSpatialChristoffelFirstKindCompute<Dim, frame,
+||||||| parent of dea557b... Compute spatial ricci tensor in volume
+        gr::Tags::SpatialChristoffelFirstKindCompute<Dim, Inertial, DataVector>,
+        gr::Tags::SpatialChristoffelSecondKindCompute<Dim, Inertial,
+                                                      DataVector>,
+        gr::Tags::TraceSpatialChristoffelFirstKindCompute<Dim, Inertial,
+=======
+        gr::Tags::SpatialChristoffelFirstKindCompute<Dim, Inertial, DataVector>,
+        gr::Tags::SpatialChristoffelSecondKindVarsCompute<Dim, Inertial,
                                                           DataVector>,
+        ::Tags::DerivCompute<
+            ::Tags::Variables<tmpl::list<gr::Tags::SpatialChristoffelSecondKind<
+                Dim, Inertial, DataVector>>>,
+            ::Tags::InverseJacobian<::Tags::ElementMap<Dim, Inertial>,
+                                    ::Tags::LogicalCoordinates<Dim>>>,
+        gr::Tags::TraceSpatialChristoffelFirstKindCompute<Dim, Inertial,
+>>>>>>> dea557b... Compute spatial ricci tensor in volume
+                                                          DataVector>,
+<<<<<<< HEAD
         GeneralizedHarmonic::Tags::ExtrinsicCurvatureCompute<Dim, frame>,
         GeneralizedHarmonic::Tags::TraceExtrinsicCurvatureCompute<Dim, frame>,
         GeneralizedHarmonic::Tags::ConstraintGamma0Compute<Dim, frame>,
@@ -136,6 +156,108 @@ struct InitializeGHAnd3Plus1VariablesTags {
             std::move(box)));
   }
 };
+||||||| parent of dea557b... Compute spatial ricci tensor in volume
+        GeneralizedHarmonic::Tags::ExtrinsicCurvatureCompute<Dim, Inertial>,
+        GeneralizedHarmonic::Tags::TraceExtrinsicCurvatureCompute<Dim,
+                                                                  Inertial>,
+        GeneralizedHarmonic::Tags::ConstraintGamma0Compute<Dim, Inertial>,
+        GeneralizedHarmonic::Tags::ConstraintGamma1Compute<Dim, Inertial>,
+        GeneralizedHarmonic::Tags::ConstraintGamma2Compute<Dim, Inertial>>;
+
+    template <typename TagsList>
+    static auto initialize(
+        db::DataBox<TagsList>&& box,
+        const Parallel::ConstGlobalCache<Metavariables>& /*cache*/,
+        const double /*initial_time*/) noexcept {
+      const size_t num_grid_points =
+          db::get<::Tags::Mesh<Dim>>(box).number_of_grid_points();
+      const auto& inertial_coords =
+          db::get<::Tags::Coordinates<Dim, Inertial>>(box);
+
+      // The evolution variables, gauge source function, and spacetime
+      // derivative of the gauge source function will be overwritten by
+      // numerical initial data. So here just initialize them to signaling nans.
+      const auto& spacetime_metric =
+          make_with_value<tnsr::aa<DataVector, Dim, Inertial>>(
+              inertial_coords, std::numeric_limits<double>::signaling_NaN());
+      const auto& phi = make_with_value<tnsr::iaa<DataVector, Dim, Inertial>>(
+          inertial_coords, std::numeric_limits<double>::signaling_NaN());
+      const auto& pi = make_with_value<tnsr::aa<DataVector, Dim, Inertial>>(
+          inertial_coords, std::numeric_limits<double>::signaling_NaN());
+
+      using Vars = db::item_type<variables_tag>;
+      Vars vars{num_grid_points};
+      const tuples::TaggedTuple<gr::Tags::SpacetimeMetric<Dim>,
+                                GeneralizedHarmonic::Tags::Phi<Dim>,
+                                GeneralizedHarmonic::Tags::Pi<Dim>>
+          solution_tuple(spacetime_metric, phi, pi);
+
+      vars.assign_subset(solution_tuple);
+
+      const auto& initial_gauge_source =
+          make_with_value<tnsr::a<DataVector, Dim, Inertial>>(
+              inertial_coords, std::numeric_limits<double>::signaling_NaN());
+      const auto& spacetime_deriv_initial_gauge_source =
+          make_with_value<tnsr::ab<DataVector, Dim, Inertial>>(
+              inertial_coords, std::numeric_limits<double>::signaling_NaN());
+
+      return db::create_from<db::RemoveTags<>, simple_tags, compute_tags>(
+          std::move(box), std::move(vars), std::move(initial_gauge_source),
+          std::move(spacetime_deriv_initial_gauge_source), 0.0, 1.0e30, 5.0e30);
+    }
+  };
+=======
+        gr::Tags::RicciTensorCompute<Dim, Inertial, DataVector>,
+        GeneralizedHarmonic::Tags::ExtrinsicCurvatureCompute<Dim, Inertial>,
+        GeneralizedHarmonic::Tags::TraceExtrinsicCurvatureCompute<Dim,
+                                                                  Inertial>,
+        GeneralizedHarmonic::Tags::ConstraintGamma0Compute<Dim, Inertial>,
+        GeneralizedHarmonic::Tags::ConstraintGamma1Compute<Dim, Inertial>,
+        GeneralizedHarmonic::Tags::ConstraintGamma2Compute<Dim, Inertial>>;
+
+    template <typename TagsList>
+    static auto initialize(
+        db::DataBox<TagsList>&& box,
+        const Parallel::ConstGlobalCache<Metavariables>& /*cache*/,
+        const double /*initial_time*/) noexcept {
+      const size_t num_grid_points =
+          db::get<::Tags::Mesh<Dim>>(box).number_of_grid_points();
+      const auto& inertial_coords =
+          db::get<::Tags::Coordinates<Dim, Inertial>>(box);
+
+      // The evolution variables, gauge source function, and spacetime
+      // derivative of the gauge source function will be overwritten by
+      // numerical initial data. So here just initialize them to signaling nans.
+      const auto& spacetime_metric =
+          make_with_value<tnsr::aa<DataVector, Dim, Inertial>>(
+              inertial_coords, std::numeric_limits<double>::signaling_NaN());
+      const auto& phi = make_with_value<tnsr::iaa<DataVector, Dim, Inertial>>(
+          inertial_coords, std::numeric_limits<double>::signaling_NaN());
+      const auto& pi = make_with_value<tnsr::aa<DataVector, Dim, Inertial>>(
+          inertial_coords, std::numeric_limits<double>::signaling_NaN());
+
+      using Vars = db::item_type<variables_tag>;
+      Vars vars{num_grid_points};
+      const tuples::TaggedTuple<gr::Tags::SpacetimeMetric<Dim>,
+                                GeneralizedHarmonic::Tags::Phi<Dim>,
+                                GeneralizedHarmonic::Tags::Pi<Dim>>
+          solution_tuple(spacetime_metric, phi, pi);
+
+      vars.assign_subset(solution_tuple);
+
+      const auto& initial_gauge_source =
+          make_with_value<tnsr::a<DataVector, Dim, Inertial>>(
+              inertial_coords, std::numeric_limits<double>::signaling_NaN());
+      const auto& spacetime_deriv_initial_gauge_source =
+          make_with_value<tnsr::ab<DataVector, Dim, Inertial>>(
+              inertial_coords, std::numeric_limits<double>::signaling_NaN());
+
+      return db::create_from<db::RemoveTags<>, simple_tags, compute_tags>(
+          std::move(box), std::move(vars), std::move(initial_gauge_source),
+          std::move(spacetime_deriv_initial_gauge_source), 0.0, 1.0e30, 5.0e30);
+    }
+  };
+>>>>>>> dea557b... Compute spatial ricci tensor in volume
 
 template <size_t Dim>
 struct InitializeGaugeTags {
