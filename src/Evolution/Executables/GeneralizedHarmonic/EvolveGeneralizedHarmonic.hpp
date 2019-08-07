@@ -111,7 +111,7 @@ class CProxy_ConstGlobalCache;
 
 struct EvolutionMetavars {
   // Customization/"input options" to simulation
-  static constexpr int volume_dim = 3;
+  static constexpr size_t volume_dim = 3;
   using frame = Frame::Inertial;
   using system = GeneralizedHarmonic::System<volume_dim>;
   using temporal_id = Tags::TimeStepId;
@@ -122,6 +122,11 @@ struct EvolutionMetavars {
   using analytic_solution_tag = Tags::AnalyticSolution<analytic_solution>;
   using initial_data_tag = Tags::AnalyticSolution<analytic_solution>;
   using boundary_condition_tag = initial_data_tag;
+  using interpolator_source_vars =
+      tmpl::list<gr::Tags::SpacetimeMetric<volume_dim, frame>,
+                 GeneralizedHarmonic::Tags::Pi<volume_dim, frame>,
+                 GeneralizedHarmonic::Tags::Phi<volume_dim, frame>,
+                 gr::Tags::RicciTensor<volume_dim, frame, DataVector>>;
 
   // The type of initial data for the evolution. Set to `analytic_solution` for
   // starting from an analytic solution, or `NumericalInitialData` to read
@@ -162,10 +167,13 @@ struct EvolutionMetavars {
         tmpl::list<gr::Tags::SpatialMetric<volume_dim, frame, DataVector>,
                    gr::Tags::InverseSpatialMetric<volume_dim, frame>,
                    gr::Tags::ExtrinsicCurvature<volume_dim, frame>,
-                   gr::Tags::SpatialChristoffelSecondKind<volume_dim, frame>>;
-    using compute_items_on_target = tmpl::append<
-        tmpl::list<StrahlkorperGr::Tags::AreaElement<frame>, Unity>,
-        tags_to_observe>;
+                   gr::Tags::SpatialChristoffelSecondKind<volume_dim, frame>,
+                   gr::Tags::RicciTensor<volume_dim, frame, DataVector>>;
+    using compute_items_on_target =
+        tmpl::list<StrahlkorperGr::Tags::AreaElement<frame>,
+                   Unity,
+                   StrahlkorperGr::Tags::SurfaceIntegral<
+		     Unity, frame>>;
     using compute_target_points =
         intrp::Actions::ApparentHorizon<Horizon, ::Frame::Inertial>;
     using post_interpolation_callback =
