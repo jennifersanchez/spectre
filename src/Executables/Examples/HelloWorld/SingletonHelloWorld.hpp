@@ -2,6 +2,7 @@
 // See LICENSE.txt for details.
 
 #pragma once
+#include <cmath>
 
 /// \cond
 /// [executable_example_includes]
@@ -35,7 +36,7 @@ struct InitialGuess : db::SimpleTag {
 
   static constexpr bool pass_metavariables = false;
   static double create_from_options(const double& initial_guess) noexcept {
-    return initial_guess;
+    return sqrt(initial_guess);
   }
 };
 }  // namespace Tags
@@ -43,16 +44,15 @@ struct InitialGuess : db::SimpleTag {
 
 /// [executable_example_action]
 namespace Actions {
-struct PrintMessage {
+struct ComputeAndPrint {
   template <typename ParallelComponent, typename DbTags, typename Metavariables,
             typename ArrayIndex>
   static void apply(db::DataBox<DbTags>& /*box*/,
                     const Parallel::ConstGlobalCache<Metavariables>& cache,
                     const ArrayIndex& /*array_index*/) {
-    Parallel::printf("Hello %1.15f from process %d on node %d!\n",
-                     Parallel::get<Tags::InitialGuess>(cache),
-                     Parallel::my_proc(), Parallel::my_node());
-  }
+    Parallel::printf("The answer is: %1.15f\n",
+                     Parallel::get<Tags::InitialGuess>(cache));
+                      }
 };
 }  // namespace Actions
 /// [executable_example_action]
@@ -77,7 +77,7 @@ template <class Metavariables>
 void HelloWorld<Metavariables>::execute_next_phase(
     const typename Metavariables::Phase /* next_phase */,
     Parallel::CProxy_ConstGlobalCache<Metavariables>& global_cache) noexcept {
-  Parallel::simple_action<Actions::PrintMessage>(
+  Parallel::simple_action<Actions::ComputeAndPrint>(
       Parallel::get_parallel_component<HelloWorld>(
           *(global_cache.ckLocalBranch())));
 }
