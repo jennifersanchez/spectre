@@ -23,18 +23,18 @@
 /// [executable_example_options]
 namespace OptionTags {
 struct Name {
-  using type = std::string;
+  using type = double;
   static constexpr OptionString help{"A name"};
 };
 }  // namespace OptionTags
 
 namespace Tags {
 struct Name : db::SimpleTag {
-  using type = std::string;
+  using type = double;
   using option_tags = tmpl::list<OptionTags::Name>;
 
   static constexpr bool pass_metavariables = false;
-  static std::string create_from_options(const std::string& name) noexcept {
+  static double create_from_options(const double& name) noexcept {
     return name;
   }
 };
@@ -49,7 +49,7 @@ struct PrintMessage {
   static void apply(db::DataBox<DbTags>& /*box*/,
                     const Parallel::ConstGlobalCache<Metavariables>& cache,
                     const ArrayIndex& /*array_index*/) {
-    Parallel::printf("Hello %s from process %d on node %d!\n",
+    Parallel::printf("Hello %1.15f from process %d on node %d!\n",
                      Parallel::get<Tags::Name>(cache), Parallel::my_proc(),
                      Parallel::my_node());
   }
