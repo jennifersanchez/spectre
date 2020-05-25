@@ -22,20 +22,20 @@
 
 /// [executable_example_options]
 namespace OptionTags {
-struct Name {
+struct InitialGuess {
   using type = double;
-  static constexpr OptionString help{"A name"};
+  static constexpr OptionString help{"Initial Guess"};
 };
 }  // namespace OptionTags
 
 namespace Tags {
-struct Name : db::SimpleTag {
+struct InitialGuess : db::SimpleTag {
   using type = double;
-  using option_tags = tmpl::list<OptionTags::Name>;
+  using option_tags = tmpl::list<OptionTags::InitialGuess>;
 
   static constexpr bool pass_metavariables = false;
-  static double create_from_options(const double& name) noexcept {
-    return name;
+  static double create_from_options(const double& initial_guess) noexcept {
+    return initial_guess;
   }
 };
 }  // namespace Tags
@@ -50,8 +50,8 @@ struct PrintMessage {
                     const Parallel::ConstGlobalCache<Metavariables>& cache,
                     const ArrayIndex& /*array_index*/) {
     Parallel::printf("Hello %1.15f from process %d on node %d!\n",
-                     Parallel::get<Tags::Name>(cache), Parallel::my_proc(),
-                     Parallel::my_node());
+                     Parallel::get<Tags::InitialGuess>(cache),
+                     Parallel::my_proc(), Parallel::my_node());
   }
 };
 }  // namespace Actions
@@ -60,7 +60,7 @@ struct PrintMessage {
 /// [executable_example_singleton]
 template <class Metavariables>
 struct HelloWorld {
-  using const_global_cache_tags = tmpl::list<Tags::Name>;
+  using const_global_cache_tags = tmpl::list<Tags::InitialGuess>;
   using chare_type = Parallel::Algorithms::Singleton;
   using metavariables = Metavariables;
   using phase_dependent_action_list = tmpl::list<
