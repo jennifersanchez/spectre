@@ -10,6 +10,7 @@
 #include "DataStructures/DataBox/DataBox.hpp"
 #include "DataStructures/DataBox/Tag.hpp"
 #include "ErrorHandling/FloatingPointExceptions.hpp"
+#include "NumericalAlgorithms/RootFinding/NewtonRaphson.hpp"
 #include "Options/Options.hpp"
 #include "Parallel/ConstGlobalCache.hpp"
 #include "Parallel/Info.hpp"
@@ -27,6 +28,10 @@ struct InitialGuess {
   using type = double;
   static constexpr OptionString help{"Initial Guess"};
 };
+struct RootSolve {
+  using type = double;
+  static constexpr OptionString help{"Root Solve"};
+};
 }  // namespace OptionTags
 
 namespace Tags {
@@ -36,10 +41,30 @@ struct InitialGuess : db::SimpleTag {
 
   static constexpr bool pass_metavariables = false;
   static double create_from_options(const double& initial_guess) noexcept {
-    return sqrt(initial_guess);
+    return initial_guess;
   }
 };
+namespace {
+const double lower_bound = 0.0;
+const double upper_bound = 10.0;
+const size_t digits = 2;
+const size_t max_iterations = 50;
+const auto func_and_deriv = [](double x) noexcept {
+  return std::make_pair(x, 1);
+};
+}  // namespace
+struct RootSolve : db::SimpleTag {
+  using type = double;
+  using option_tags = tmpl::list<OptionTags::RootSolve>;
+  static constexpr bool pass_metavariables = false;
+  static double create_from_options(const double& root_solve) noexcept {
+    return double(::RootFinder::newton_raphson(
+        func_and_deriv, const double* initial_guess, lower_bound, upper_bound,
+        digits));
+  };
+};
 }  // namespace Tags
+// namespace Tags
 /// [executable_example_options]
 
 /// [executable_example_action]
@@ -51,8 +76,9 @@ struct ComputeAndPrint {
                     const Parallel::ConstGlobalCache<Metavariables>& cache,
                     const ArrayIndex& /*array_index*/) {
     Parallel::printf("The answer is: %1.15f\n",
-                     Parallel::get<Tags::InitialGuess>(cache));
-                      }
+                     Parallel::get<Tags::InitialGuess>(cache),
+                     Parallel::get<Tags::RootSolve>(cache));
+  }
 };
 }  // namespace Actions
 /// [executable_example_action]
