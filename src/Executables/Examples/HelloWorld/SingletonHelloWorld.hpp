@@ -57,11 +57,11 @@ struct RootSolve : db::SimpleTag {
   using type = double;
   using option_tags = tmpl::list<OptionTags::RootSolve>;
   static constexpr bool pass_metavariables = false;
-  static double create_from_options(const double& root_solve) noexcept {
+  /* static double create_from_options(const double& root_solve) noexcept {*/
+  static double function(const double& initial_guess) noexcept {
     return double(::RootFinder::newton_raphson(
-        func_and_deriv, const double* initial_guess, lower_bound, upper_bound,
-        digits));
-  };
+        func_and_deriv, initial_guess, lower_bound, upper_bound, digits));
+  }
 };
 }  // namespace Tags
 // namespace Tags
