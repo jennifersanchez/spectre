@@ -3,6 +3,7 @@
 
 #pragma once
 #include <cmath>
+#include <math.h>
 
 /// \cond
 /// [executable_example_includes]
@@ -21,16 +22,21 @@
 #include "Parallel/Printf.hpp"
 #include "Utilities/TMPL.hpp"
 /// [executable_example_includes]
+namespace {
+const double lower_bound = -100.0;
+const double upper_bound = 100.0;
+const size_t digits = 2;
+const size_t max_iterations = 50.0;
+const auto func_and_deriv = [](double x) noexcept {
+  return std::make_pair(sin(x),cos(x));
+};
+}  // namespace
 
 /// [executable_example_options]
 namespace OptionTags {
 struct InitialGuess {
   using type = double;
   static constexpr OptionString help{"Initial Guess"};
-};
-struct RootSolve {
-  using type = double;
-  static constexpr OptionString help{"Root Solve"};
 };
 }  // namespace OptionTags
 
@@ -44,24 +50,15 @@ struct InitialGuess : db::SimpleTag {
     return initial_guess;
   }
 };
-namespace {
-const double lower_bound = 0.0;
-const double upper_bound = 10.0;
-const size_t digits = 2;
-const size_t max_iterations = 50;
-const auto func_and_deriv = [](double x) noexcept {
-  return std::make_pair(x, 1);
-};
-}  // namespace
 struct RootSolve : db::SimpleTag {
   using type = double;
-  using option_tags = tmpl::list<OptionTags::RootSolve>;
-  static constexpr bool pass_metavariables = false;
-  /* static double create_from_options(const double& root_solve) noexcept {*/
+};
+struct RootSolveCompute : RootSolve, db::ComputeTag {
   static double function(const double& initial_guess) noexcept {
     return double(::RootFinder::newton_raphson(
         func_and_deriv, initial_guess, lower_bound, upper_bound, digits));
   }
+  using argument_tags = tmpl::list<InitialGuess>;
 };
 }  // namespace Tags
 // namespace Tags
@@ -75,9 +72,11 @@ struct ComputeAndPrint {
   static void apply(db::DataBox<DbTags>& /*box*/,
                     const Parallel::ConstGlobalCache<Metavariables>& cache,
                     const ArrayIndex& /*array_index*/) {
-    Parallel::printf("The answer is: %1.15f\n",
-                     Parallel::get<Tags::InitialGuess>(cache),
-                     Parallel::get<Tags::RootSolve>(cache));
+    double result{::RootFinder::newton_raphson(
+        func_and_deriv, Parallel::get<Tags::InitialGuess>(cache), lower_bound,
+        upper_bound, digits)};
+    Parallel::printf("The initial guess: %1.15f, the answer is: %1.15f \n",
+                     Parallel::get<Tags::InitialGuess>(cache), result);
   }
 };
 }  // namespace Actions
