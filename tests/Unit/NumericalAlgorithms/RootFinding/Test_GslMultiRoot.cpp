@@ -12,6 +12,17 @@
 #include "NumericalAlgorithms/RootFinding/GslMultiRoot.hpp"
 #include "Utilities/GetOutput.hpp"
 
+#include <iostream>
+#include <cmath>
+
+double newton_raphson_method() {
+  double func, func_deriv, approximate_root, initial_guess;
+  initial_guess = -100.0;
+  func =initial_guess*initial_guess+1.0;
+  func_deriv =2.0*initial_guess;
+  approximate_root =initial_guess-(func/func_deriv);
+  return approximate_root;
+}
 namespace {
 
 // Rosenbrock system of equations:
