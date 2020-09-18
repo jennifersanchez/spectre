@@ -7,12 +7,13 @@
 #include <cstddef>
 #include <memory>
 #include <pup.h>
+#include <iostream>
 
 #include "DataStructures/Tensor/Tensor.hpp"
-#include "Framework/TestHelpers.hpp"
 #include "PointwiseFunctions/AnalyticSolutions/GeneralRelativity/Tov.hpp"
 #include "PointwiseFunctions/Hydro/EquationsOfState/EquationOfState.hpp"  // IWYU pragma: keep
 #include "Utilities/ConstantExpressions.hpp"
+#include "Framework/TestHelpers.hpp"
 
 // IWYU pragma: no_forward_declare EquationsOfState::EquationOfState
 
@@ -72,6 +73,7 @@ void test_tov(
   const double intermediate_radius{tov_out_intermediate.outer_radius()};
   const double intermediate_mass{
       tov_out_intermediate.mass(intermediate_radius)};
+  std::cout << intermediate_mass << "|" << std::endl;
   const double intermediate_log_enthalpy{
       tov_out_intermediate.log_specific_enthalpy(intermediate_radius)};
   const double interpolated_mass{tov_out_full.mass(intermediate_radius)};
