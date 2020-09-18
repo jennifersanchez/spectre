@@ -27,7 +27,6 @@ const auto func_and_deriv = [](double x) noexcept {
   return std::make_pair(sin(x), cos(x));
 };
 }  // namespace
-
 /// [executable_example_options]
 namespace OptionTags {
 struct InitialGuess {
