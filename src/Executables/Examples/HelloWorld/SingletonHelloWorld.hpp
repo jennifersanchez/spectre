@@ -2,6 +2,8 @@
 // See LICENSE.txt for details.
 
 #pragma once
+#include <cmath>
+#include <math.h>
 
 /// \cond
 /// [executable_example_includes]
@@ -9,6 +11,7 @@
 #include "DataStructures/DataBox/DataBox.hpp"
 #include "DataStructures/DataBox/Tag.hpp"
 #include "ErrorHandling/FloatingPointExceptions.hpp"
+#include "NumericalAlgorithms/RootFinding/NewtonRaphson.hpp"
 #include "Options/Options.hpp"
 #include "Parallel/GlobalCache.hpp"
 #include "Parallel/Info.hpp"
@@ -19,39 +22,127 @@
 #include "Parallel/Printf.hpp"
 #include "Utilities/TMPL.hpp"
 /// [executable_example_includes]
+namespace {
+const auto func_and_deriv = [](double x) noexcept {
+  return std::make_pair(sin(x), cos(x));
+};
+}  // namespace
 
 /// [executable_example_options]
 namespace OptionTags {
-struct Name {
-  using type = std::string;
-  static constexpr Options::String help{"A name"};
+struct InitialGuess {
+  using type = double;
+  static constexpr OptionString help{"Initial Guess"};
+};
+
+struct LowerBound {
+  using type = double;
+  static constexpr OptionString help{"Lower Bound"};
+};
+
+struct UpperBound {
+  using type = double;
+  static constexpr OptionString help{"Upper Bound"};
+};
+
+struct Digits {
+  using type = double;
+  static constexpr OptionString help{"Digits"};
+};
+
+struct MaxIterations {
+  using type = double;
+  static constexpr OptionString help{"Max Iteration"};
 };
 }  // namespace OptionTags
 
 namespace Tags {
-struct Name : db::SimpleTag {
-  using type = std::string;
-  using option_tags = tmpl::list<OptionTags::Name>;
+struct InitialGuess : db::SimpleTag {
+  using type = double;
+  using option_tags = tmpl::list<OptionTags::InitialGuess>;
 
   static constexpr bool pass_metavariables = false;
-  static std::string create_from_options(const std::string& name) noexcept {
-    return name;
+  static double create_from_options(const double& initial_guess) noexcept {
+    return initial_guess;
   }
 };
+struct LowerBound : db::SimpleTag {
+  using type = double;
+  using option_tags = tmpl::list<OptionTags::LowerBound>;
+  static constexpr bool pass_metavariables = false;
+  static double create_from_options(const double& lower_bound) noexcept {
+    return lower_bound;
+  }
+};
+struct UpperBound : db::SimpleTag {
+  using type = double;
+  using option_tags = tmpl::list<OptionTags::UpperBound>;
+  static constexpr bool pass_metavariables = false;
+  static double create_from_options(const double& upper_bound) noexcept {
+    return upper_bound;
+  }
+};
+
+struct Digits : db::SimpleTag {
+  using type = double;
+  using option_tags = tmpl::list<OptionTags::Digits>;
+  static constexpr bool pass_metavariables = false;
+  static double create_from_options(const double& digits) noexcept {
+    return digits;
+  }
+};
+
+struct MaxIterations : db::SimpleTag {
+  using type = double;
+  using option_tags = tmpl::list<OptionTags::MaxIterations>;
+  static constexpr bool pass_metavariables = false;
+  static double create_from_options(const double& max_iterations) noexcept {
+    return max_iterations;
+  }
+};
+
+struct RootSolve : db::SimpleTag {
+  using type = double;
+};
+struct RootSolveCompute : RootSolve, db::ComputeTag {
+  static double function(const double& initial_guess, const double& lower_bound,
+                         const double& upper_bound, const double& digits,
+                         const double& max_iterations) noexcept {
+    return double(::RootFinder::newton_raphson(func_and_deriv, initial_guess,
+                                               lower_bound, upper_bound, digits,
+                                               max_iterations));
+  }
+  using argument_tags =
+      tmpl::list<InitialGuess, LowerBound, UpperBound, Digits, MaxIterations>;
+};
 }  // namespace Tags
+// namespace Tags
 /// [executable_example_options]
 
 /// [executable_example_action]
 namespace Actions {
-struct PrintMessage {
+struct ComputeAndPrint {
   template <typename ParallelComponent, typename DbTags, typename Metavariables,
             typename ArrayIndex>
   static void apply(db::DataBox<DbTags>& /*box*/,
                     const Parallel::GlobalCache<Metavariables>& cache,
                     const ArrayIndex& /*array_index*/) {
-    Parallel::printf("Hello %s from process %d on node %d!\n",
-                     Parallel::get<Tags::Name>(cache), Parallel::my_proc(),
-                     Parallel::my_node());
+    double result{::RootFinder::newton_raphson(
+        func_and_deriv, Parallel::get<Tags::InitialGuess>(cache),
+        Parallel::get<Tags::LowerBound>(cache),
+        Parallel::get<Tags::UpperBound>(cache),
+        Parallel::get<Tags::Digits>(cache),
+        Parallel::get<Tags::MaxIterations>(cache))};
+    Parallel::printf(
+        "The initial guess: %1.15f, the lower bound: %1.15f, the upper bound: "
+        "%1.15f, the digits are %1d, the maximum iterations are %2d, the "
+        "answer is: "
+        "%1.15f \n",
+        Parallel::get<Tags::InitialGuess>(cache),
+        Parallel::get<Tags::LowerBound>(cache),
+        Parallel::get<Tags::UpperBound>(cache),
+        Parallel::get<Tags::Digits>(cache),
+        Parallel::get<Tags::MaxIterations>(cache), result);
   }
 };
 }  // namespace Actions
@@ -60,7 +151,9 @@ struct PrintMessage {
 /// [executable_example_singleton]
 template <class Metavariables>
 struct HelloWorld {
-  using const_global_cache_tags = tmpl::list<Tags::Name>;
+  using const_global_cache_tags =
+      tmpl::list<Tags::InitialGuess, Tags::LowerBound, Tags::UpperBound,
+                 Tags::Digits, Tags::MaxIterations>;
   using chare_type = Parallel::Algorithms::Singleton;
   using metavariables = Metavariables;
   using phase_dependent_action_list = tmpl::list<
@@ -76,8 +169,8 @@ struct HelloWorld {
 template <class Metavariables>
 void HelloWorld<Metavariables>::execute_next_phase(
     const typename Metavariables::Phase /* next_phase */,
-    Parallel::CProxy_GlobalCache<Metavariables>& global_cache) noexcept {
-  Parallel::simple_action<Actions::PrintMessage>(
+    Parallel::CProxy_ConstGlobalCache<Metavariables>& global_cache) noexcept {
+  Parallel::simple_action<Actions::ComputeAndPrint>(
       Parallel::get_parallel_component<HelloWorld>(
           *(global_cache.ckLocalBranch())));
 }
